@@ -19,7 +19,7 @@ License:
 */
 #include <iostream>
 #include <gflags/gflags.h>
-
+#include <cnpy/cnpy.h>
 #include "easylogging++.h"
 
 // Command line args
@@ -35,5 +35,6 @@ int main(int argc, char** argv)
     el::Loggers::reconfigureAllLoggers(conf);
 
     LOG(INFO) << "Starting GradSmooth.";
+
     return 0;
 }

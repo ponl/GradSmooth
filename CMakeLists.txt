@@ -12,7 +12,8 @@ include_directories     (${CMAKE_CURRENT_BINARY_DIR}
 find_package            (gflags REQUIRED)
 
 add_subdirectory        (src)
-add_executable          (GradSmooth gradsmooth.cpp)
+add_executable          (GradSmooth gradsmooth.cpp
+                                    src/cnpy.cpp)
 target_link_libraries   (GradSmooth gflags)
 
 
