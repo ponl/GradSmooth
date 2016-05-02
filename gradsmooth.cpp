@@ -20,6 +20,7 @@ License:
 #include <iostream>
 #include <gflags/gflags.h>
 #include <cnpy/cnpy.h>
+#include <eigen3/Eigen/Dense>
 #include "easylogging++.h"
 
 // Command line args

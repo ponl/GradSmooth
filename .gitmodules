@@ -1,0 +1,3 @@
+[submodule "include/nanoflann"]
+	path = include/nanoflann
+	url = git@github.com:jlblancoc/nanoflann.git
