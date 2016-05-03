@@ -25,14 +25,19 @@ GradSmooth uses the NumPy file format for point clouds. This makes it easy to ru
 ./gradsmooth path/to/input.npy path/to/output.npy
 
 Additionally, GradSmooth has the following parameters which can be set.
+
     -iterations (Number of iterations to run the smoothing algorithm)
       type: int32 default: 10
+      
     -max_leaf_size (Maximum number of points contained within a kd-tree leaf)
       type: int32 default: 10
+      
     -num_neighbors (Number of nearest neighbors to use for knn-search)
       type: int32 default: 5
+      
     -num_threads (Number of threads to use for the smoothing algorithm)
       type: int32 default: 1
+      
     -step_size (Step size for gradient flow) type: double
       default: 0.1
       
