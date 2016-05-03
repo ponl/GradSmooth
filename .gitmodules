@@ -1,3 +1,12 @@
 [submodule "include/nanoflann"]
-	path = include/nanoflann
+	path = external/nanoflann
 	url = git@github.com:jlblancoc/nanoflann.git
+[submodule "include/easyloggingpp"]
+	path = external/easyloggingpp
+	url = https://github.com/easylogging/easyloggingpp
+[submodule "external/cnpy"]
+	path = external/cnpy
+	url = git@github.com:rogersce/cnpy.git
+[submodule "external/gflags"]
+	path = external/gflags
+	url = git@github.com:gflags/gflags.git

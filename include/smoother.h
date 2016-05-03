@@ -5,7 +5,7 @@
 #include <thread>
 #include <algorithm>
 
-#include "easylogging++.h"
+#include "easyloggingpp/src/easylogging++.h"
 #include "PointCloud.h"
 
 class Smoother

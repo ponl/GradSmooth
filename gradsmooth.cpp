@@ -21,7 +21,7 @@ License:
 #include <gflags/gflags.h>
 #include <cnpy/cnpy.h>
 #include <eigen3/Eigen/Dense>
-#include "easylogging++.h"
+#include "easyloggingpp/src/easylogging++.h"
 
 #include "smoother.h"
 #include "PointCloud.h"
@@ -30,6 +30,7 @@ License:
 DEFINE_double(step_size, 0.10, "Step size for gradient flow");
 DEFINE_int32(num_neighbors, 5, "Number of nearest neighbors to use for knn-search");
 DEFINE_int32(iterations, 10, "Number of iterations to run the smoothing algorithm");
+DEFINE_int32(max_leaf_size, 10, "Maximum number of points contained within a kd-tree leaf");
 DEFINE_int32(num_threads, 1, "Number of threads to use for the smoothing algorithm");
 
 // Start EasyLoggingPP logger
@@ -64,7 +65,7 @@ int main(int argc, char** argv) {
     evolved_cloud.copy_cloud(point_cloud);
 
     LOG(INFO)  << "Building k-d Tree";
-    KDTree kd_tree = KDTree(point_cloud.get_dimension(), *point_cloud.get_cloud(), 10);
+    KDTree kd_tree = KDTree(point_cloud.get_dimension(), *point_cloud.get_cloud(), FLAGS_max_leaf_size);
     kd_tree.index -> buildIndex();
     LOG(DEBUG) << "Successfully populated k-d Tree with " << kd_tree.kdtree_get_point_count() << " points";
 

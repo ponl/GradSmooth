@@ -1,7 +1,7 @@
 #ifndef KDTREEADAPTOR_H
 #define KDTREEADAPTOR_H
 
-#include "easylogging++.h"
+#include "easyloggingpp/src/easylogging++.h"
 #include "nanoflann/include/nanoflann.hpp"
 
 using namespace nanoflann;

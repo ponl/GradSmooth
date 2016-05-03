@@ -36,7 +36,7 @@ void Smoother::flow_point_wrapper(Smoother* smoother, unsigned thread_id, PointC
 
 void Smoother::smooth_point_cloud(PointCloud& cloud, PointCloud& evolved, const unsigned T)
 {
-    LOG(INFO) << "Beginning smoothing operation";
+    LOG(INFO) << "Beginning smoothing operation with num_neighbors = " << num_neighbors;
 
     unsigned num_points = cloud.get_size();
     unsigned dimension  = cloud.get_dimension();
