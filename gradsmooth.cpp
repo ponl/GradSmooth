@@ -30,6 +30,7 @@ License:
 DEFINE_double(step_size, 0.10, "Step size for gradient flow");
 DEFINE_int32(num_neighbors, 5, "Number of nearest neighbors to use for knn-search");
 DEFINE_int32(iterations, 10, "Number of iterations to run the smoothing algorithm");
+DEFINE_int32(num_threads, 1, "Number of threads to use for the smoothing algorithm");
 
 // Start EasyLoggingPP logger
 INITIALIZE_EASYLOGGINGPP;
@@ -69,9 +70,9 @@ int main(int argc, char** argv) {
 
     point_cloud.assign_kd_tree(&kd_tree);
 
-    Smoother smoother;
+    Smoother smoother(FLAGS_num_neighbors, point_cloud.get_dimension(), FLAGS_num_threads, FLAGS_step_size);
 
-    smoother.smooth_point_cloud(point_cloud, evolved_cloud, FLAGS_num_neighbors, FLAGS_iterations, FLAGS_step_size);
+    smoother.smooth_point_cloud(point_cloud, evolved_cloud, FLAGS_iterations);
 
     evolved_cloud.save_cloud(outfn);
 
