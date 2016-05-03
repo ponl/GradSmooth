@@ -1,4 +1,4 @@
-# Project Name
+# GradSmooth
 
 This point cloud smoothing algorithm evolves a point cloud so that the overall distance to measure (http://arxiv.org/pdf/1412.7197.pdf) is lowered. To accomplish this, we use the distance to measure function to induce a gradient flow on the point cloud. Using gradient descent, we evolve the point cloud. This is a multi-threaded implementation. Additionally, we use the nanoflann library (https://github.com/jlblancoc/nanoflann) for the nearest neighbor computations.
 
