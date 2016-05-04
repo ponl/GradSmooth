@@ -1,5 +1,6 @@
 #ifndef POINTCLOUD_H
 #define POINTCLOUD_H
+#define ELPP_THREAD_SAFE
 
 #include <iostream>
 #include <string>

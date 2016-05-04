@@ -10,3 +10,6 @@
 [submodule "external/gflags"]
 	path = external/gflags
 	url = git@github.com:gflags/gflags.git
+[submodule "external/eigen"]
+	path = external/eigen
+	url = git@github.com:RLovelett/eigen.git
