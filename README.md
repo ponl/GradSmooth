@@ -3,7 +3,7 @@
 This point cloud smoothing algorithm evolves a point cloud so that the overall distance to measure (http://arxiv.org/pdf/1412.7197.pdf) is lowered. To accomplish this, we use the distance to measure function to induce a gradient flow on the point cloud. Using gradient descent, we evolve the point cloud. This is a multi-threaded implementation. Additionally, we use the nanoflann library (https://github.com/jlblancoc/nanoflann) for the nearest neighbor computations.
 
 ## Installation
-GradSmooth uses CMake for building, therefore cmake is required. Additionally, GradSmooth has the following dependencies, however, all of these are included as submodules so no work is required on your part.
+GradSmooth uses CMake for building, therefore cmake is required. Additionally, GradSmooth has the following dependencies, however, all of these are included as submodules so no work is required on your part other than running a simple git submodule command.
 
 - gflags
 - nanoflann
@@ -12,6 +12,7 @@ GradSmooth uses CMake for building, therefore cmake is required. Additionally, G
 This makes it very easy to install GradSmooth. Simply do the following from the GradSmooth directory.
 
 ```
+git submodule update --init
 mkdir build
 cd build
 cmake ..
