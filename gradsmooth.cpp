@@ -42,7 +42,7 @@ INITIALIZE_EASYLOGGINGPP;
 int main(int argc, char** argv) {
 
     // Set up logging
-    el::Configurations conf("/home/poneil/Math/GradSmooth/logging.conf");
+    el::Configurations conf("../logging.conf");
     el::Loggers::reconfigureAllLoggers(conf);
     LOG(INFO) << "Starting GradSmooth.";
 
