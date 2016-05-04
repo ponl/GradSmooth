@@ -42,7 +42,7 @@ INITIALIZE_EASYLOGGINGPP;
 int main(int argc, char** argv) {
 
     // Set up logging
-    el::Configurations conf("../logging.conf");
+    el::Configurations conf("${LOGGER_CONF_PATH}");
     el::Loggers::reconfigureAllLoggers(conf);
     LOG(INFO) << "Starting GradSmooth.";
 
