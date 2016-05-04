@@ -8,6 +8,7 @@ GradSmooth uses CMake for building, therefore cmake is required. Additionally, G
 - gflags
 - nanoflann
 - easylogging
+- Eigen
 
 This makes it very easy to install GradSmooth. Simply do the following from the GradSmooth directory.
 
