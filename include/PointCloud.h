@@ -11,7 +11,7 @@
 
 #include "KDTreeAdaptor.h"
 
-typedef float                                               Coordinate;
+typedef double                                              Coordinate;
 typedef std::vector<Coordinate>                             Point;
 typedef std::vector<Point>                                  Cloud;
 typedef KDTreeVectorOfVectorsAdaptor<Cloud, Coordinate>     KDTree;
