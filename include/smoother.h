@@ -10,10 +10,9 @@
 #include <algorithm>
 #include <numeric>
 
+#include <plog/Log.h>
 #include <eigen/Eigen/Dense>
 #include <eigen/Eigen/Eigenvalues>
-#include "easyloggingpp/src/easylogging++.h"
-
 
 #include "PointCloud.h"
 

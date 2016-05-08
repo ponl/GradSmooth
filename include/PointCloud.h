@@ -6,7 +6,7 @@
 #include <string>
 #include <vector>
 #include <cnpy/cnpy.h>
-#include "easyloggingpp/src/easylogging++.h"
+#include <plog/Log.h>
 #include "nanoflann/include/nanoflann.hpp"
 
 #include "KDTreeAdaptor.h"

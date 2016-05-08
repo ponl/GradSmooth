@@ -22,7 +22,8 @@ License:
 
 #include <gflags/gflags.h>
 #include <cnpy/cnpy.h>
-#include "easyloggingpp/src/easylogging++.h"
+#include <plog/Log.h>
+#include <plog/Appenders/ColorConsoleAppender.h>
 
 #include "smoother.h"
 #include "PointCloud.h"
@@ -36,15 +37,12 @@ DEFINE_int32(max_leaf_size, 10, "Maximum number of points contained within a kd-
 DEFINE_int32(num_threads, 1, "Number of threads to use for the smoothing algorithm");
 DEFINE_int32(codimension, 1, "Co-dimension of the manifold from which the point cloud was sampled");
 
-// Start EasyLoggingPP logger
-INITIALIZE_EASYLOGGINGPP;
-
 int main(int argc, char** argv) {
 
     // Set up logging
-    el::Configurations conf("${LOGGER_CONF_PATH}");
-    el::Loggers::reconfigureAllLoggers(conf);
-    LOG(INFO) << "Starting GradSmooth.";
+    static plog::ColorConsoleAppender<plog::TxtFormatter> consoleAppender;
+    plog::init(plog::info, &consoleAppender);
+    LOG_INFO << "Starting GradSmooth.";
 
     // Parse command line flags
     gflags::SetUsageMessage("GradSmooth: Arbitrary dimension point cloud smoothing.");
@@ -52,14 +50,14 @@ int main(int argc, char** argv) {
 
     // Get input and output path for numpy arrays
     if(argc != 3) {
-        LOG(ERROR) << "Incorrect number of command line args."
+        LOG_ERROR << "Incorrect number of command line args."
                    << "Please specify input and output path.";
         return 0;
     }
     std::string infn  = argv[arg_indx];
     std::string outfn = argv[arg_indx + 1];
-    LOG(INFO) << "Using input path: " <<  infn;
-    LOG(INFO) << "Using output path: " << outfn;
+    LOG_INFO << "Using input path: " <<  infn;
+    LOG_INFO << "Using output path: " << outfn;
 
     PointCloud  point_cloud;
     PointCloud  evolved_cloud;
@@ -68,16 +66,16 @@ int main(int argc, char** argv) {
 
     if(FLAGS_codimension >= point_cloud.get_dimension())
     {
-        LOG(FATAL) << "Loaded point cloud with lower dimension than codimension!";
+        LOG_FATAL << "Loaded point cloud with lower dimension than codimension!";
         return 0;
     }
 
     evolved_cloud.copy_cloud(point_cloud);
 
-    LOG(INFO)  << "Building k-d Tree";
+    LOG_INFO  << "Building k-d Tree";
     KDTree kd_tree = KDTree(point_cloud.get_dimension(), *point_cloud.get_cloud(), FLAGS_max_leaf_size);
     kd_tree.index -> buildIndex();
-    LOG(DEBUG) << "Successfully populated k-d Tree with " << kd_tree.kdtree_get_point_count() << " points";
+    LOG_DEBUG << "Successfully populated k-d Tree with " << kd_tree.kdtree_get_point_count() << " points";
 
     point_cloud.assign_kd_tree(&kd_tree);
 

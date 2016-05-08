@@ -5,11 +5,11 @@
  */
 void PointCloud::load_cloud(std::string& path)
 {
-    LOG(INFO) << "Loading cloud from: " << path;
+    LOG_DEBUG << "Loading cloud from: " << path;
     cnpy::NpyArray arr = cnpy::npy_load(path);
     if(sizeof(Coordinate) != arr.word_size)
     {
-        LOG(FATAL) << "Mismatch in data sizes of NumPy file. Expected "
+        LOG_FATAL << "Mismatch in data sizes of NumPy file. Expected "
                    << sizeof(Coordinate) << " but got " << arr.word_size
                    << "(" << path << ")";
         return;
@@ -18,17 +18,17 @@ void PointCloud::load_cloud(std::string& path)
     // Extract data
     dimension = arr.shape[1];
     unsigned count = arr.shape[0];
-    LOG(INFO) << "Found cloud with " << count
+    LOG_INFO << "Found cloud with " << count
               << " points of dimension " << dimension;
 
-    LOG(DEBUG) << "Recasting data to Coordinate type";
+    LOG_DEBUG << "Recasting data to Coordinate type";
     Coordinate* pdata = reinterpret_cast<Coordinate*>(arr.data);
 
     // Empty any contents of existing point cloud
     cloud.clear();
 
     // Load point cloud into vector
-    LOG(DEBUG) << "Filling point cloud vector with data from NumPy array";
+    LOG_DEBUG << "Filling point cloud vector with data from NumPy array";
     Point   point(dimension);
     for(unsigned i = 0; i < count; i++)
     {
@@ -39,7 +39,7 @@ void PointCloud::load_cloud(std::string& path)
         cloud.push_back(point);
     }
 
-    LOG(INFO) << "Successfully loaded point cloud from file.";
+    LOG_DEBUG << "Successfully loaded point cloud from file.";
 
     return;
 }
@@ -65,24 +65,23 @@ void PointCloud::save_cloud(std::string& path)
 
     const Coordinate* pdata = flatdata.data();
 
-    LOG(INFO) << "Saving cloud with " << size << " points of dimension " << dimension
+    LOG_INFO << "Saving cloud with " << size << " points of dimension " << dimension
               << " to " << path;
 
     cnpy::npy_save<Coordinate>(path, pdata, &shape[0], 2);
 
-    LOG(INFO) << "Successfully saved cloud to path: " << path;
+    LOG_INFO << "Successfully saved cloud to path: " << path;
 }
 
 void PointCloud::copy_cloud(PointCloud& other)
 {
-    LOG(INFO) << "Copying cloud";
-    LOG(DEBUG) << "Copying cloud information";
+    LOG_DEBUG << "Copying cloud data";
     Cloud* other_cloud = other.get_cloud();
     dimension = other.get_dimension();
 
     cloud.clear();
 
-    LOG(DEBUG) << "Filling in cloud";
+    LOG_DEBUG << "Filling in cloud";
     Point point(dimension);
     for(int i = 0; i < other_cloud -> size(); i++)
     {

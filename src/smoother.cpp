@@ -20,11 +20,11 @@ Smoother::Smoother(size_t num_neighbors_, unsigned dimension_, unsigned codimens
 void Smoother::flow_point(unsigned thread_id, PointCloud& cloud)
 {
     // Find nearest neighbors in original point cloud
-    LOG(DEBUG) << "Getting neighborhood from k-d tree";
+    LOG_DEBUG << "Getting neighborhood from k-d tree";
     cloud.get_knn(updated_points[thread_id], num_neighbors, neighborhoods[thread_id], distances[thread_id]);
 
     // Compute the gradient
-    LOG(DEBUG) << "Computing the gradient";
+    LOG_DEBUG << "Computing the gradient";
     get_gradient(updated_points[thread_id], neighborhoods[thread_id], gradients[thread_id]);
 
     if(normal_projection)
@@ -32,11 +32,11 @@ void Smoother::flow_point(unsigned thread_id, PointCloud& cloud)
         VectorList normal_vectors(codimension);
 
         // TODO: Abstract out sigma allow to be set
-        LOG(DEBUG) << "Getting frame for query point";
+        LOG_DEBUG << "Getting frame for query point";
         get_frame(updated_points[thread_id], neighborhoods[thread_id], 0.1, normal_vectors);
 
         // Compute dot products and vector norms
-        LOG(DEBUG) << "Projecting gradient onto normals";
+        LOG_DEBUG << "Projecting gradient onto normals";
         std::vector<Coordinate> dots(codimension);
         std::vector<Coordinate> norms(codimension);
         for(unsigned i = 0; i < codimension; i++)
@@ -61,12 +61,12 @@ void Smoother::flow_point(unsigned thread_id, PointCloud& cloud)
                 ngradient[d] += normal_vectors[i][d] * dots[i] / norms[i];
             }
         }
-        LOG(DEBUG) << "Setting new gradient.";
+        LOG_DEBUG << "Setting new gradient.";
         gradients[thread_id] = ngradient;
     }
 
     // Move the point along the gradient
-    LOG(DEBUG) << "Updating point in cloud";
+    LOG_DEBUG << "Updating point in cloud";
     update_point(updated_points[thread_id], gradients[thread_id]);
 }
 
@@ -79,11 +79,11 @@ void Smoother::flow_point_wrapper(Smoother* smoother, unsigned thread_id, PointC
 
 void Smoother::smooth_point_cloud(PointCloud& cloud, PointCloud& evolved, const unsigned T)
 {
-    LOG(INFO) << "Beginning smoothing operation";
-    LOG(INFO) << "Number Neighbors: " << num_neighbors;
-    LOG(INFO) << "Step Size: " << step_size;
-    LOG(INFO) << "Normal Projection: " << (normal_projection ? "True": "False");
-    LOG(INFO) << "Iterations: " << T;
+    LOG_INFO << "Beginning smoothing operation";
+    LOG_INFO << "Number Neighbors: " << num_neighbors;
+    LOG_INFO << "Step Size: " << step_size;
+    LOG_INFO << "Normal Projection: " << (normal_projection ? "True": "False");
+    LOG_INFO << "Iterations: " << T;
 
     unsigned num_points = cloud.get_size();
     unsigned dimension  = cloud.get_dimension();
@@ -92,7 +92,7 @@ void Smoother::smooth_point_cloud(PointCloud& cloud, PointCloud& evolved, const 
     std::vector<std::thread> threads;
     for(unsigned t = 0; t < T; t++)
     {
-        LOG(INFO) << "Smoothing step " << t << " of " << T;
+        LOG_INFO << "Smoothing step " << t << " of " << T;
         for(unsigned i = 0; i < num_points; i += nthreads)
         {
             threads.clear();
@@ -109,7 +109,7 @@ void Smoother::smooth_point_cloud(PointCloud& cloud, PointCloud& evolved, const 
                 threads.push_back(std::thread(&Smoother::flow_point_wrapper, smoother, n, std::ref(cloud)));
             }
 
-            LOG(DEBUG) << "Processing points " << i << " to " << i + nthr_round << " of "<< num_points;
+            LOG_DEBUG << "Processing points " << i << " to " << i + nthr_round << " of "<< num_points;
 
             // Synchronize all threads
             for(auto& th: threads) th.join();
@@ -122,7 +122,7 @@ void Smoother::smooth_point_cloud(PointCloud& cloud, PointCloud& evolved, const 
         }
     }
 
-    LOG(INFO) << "Finished smoothing operation";
+    LOG_INFO << "Finished smoothing operation";
 }
 
 
@@ -167,7 +167,7 @@ Coordinate Smoother::get_squared_distance(Point& p0, Point& p1)
     unsigned dim = p0.size();
     if(dim != p1.size())
     {
-        LOG(FATAL) << "Encountered two points with different dimensions!";
+        LOG_FATAL << "Encountered two points with different dimensions!";
     }
     Coordinate distance = 0.;
     for(unsigned d = 0; d < dim; d++)
@@ -195,7 +195,7 @@ void Smoother::get_weighted_barycenter(Point& query_point, Cloud& neighborhood, 
 
     if(normalizer == 0)
     {
-        LOG(WARNING) << "Encountered point with max distance from neighbors 0!";
+        LOG_WARNING << "Encountered point with max distance from neighbors 0!";
         barycenter = query_point;
         return;
     }
@@ -211,7 +211,7 @@ void Smoother::get_weighted_barycenter(Point& query_point, Cloud& neighborhood, 
 
     if(total_weight == 0)
     {
-        LOG(WARNING) << "Encountered point whose neighbor weights were all zero!";
+        LOG_WARNING << "Encountered point whose neighbor weights were all zero!";
         barycenter = query_point;
         return;
     }
@@ -238,12 +238,12 @@ void Smoother::get_weighted_barycenter(Point& query_point, Cloud& neighborhood, 
 // TODO: Switch to using current position of neighbors
 void Smoother::get_frame(Point& query_point, Cloud& neighborhood, const double sigma, VectorList& normals)
 {
-    LOG(DEBUG) << "Computing coordinate frame.";
+    LOG_DEBUG << "Computing coordinate frame.";
     Point barycenter(dimension);
-    LOG(DEBUG) << "Getting weighted barycenter";
+    LOG_DEBUG << "Getting weighted barycenter";
     get_weighted_barycenter(query_point, neighborhood, barycenter, sigma);
 
-    LOG(DEBUG) << "Computing neighbor to barycenter matrix";
+    LOG_DEBUG << "Computing neighbor to barycenter matrix";
     Eigen::MatrixXd    b2n(num_neighbors, dimension);
 
     // Get matrix of vectors from neighbors to barycenter
@@ -255,10 +255,10 @@ void Smoother::get_frame(Point& query_point, Cloud& neighborhood, const double s
         }
     }
 
-    LOG(DEBUG) << "Centering neighbor to barycenter matrix";
+    LOG_DEBUG << "Centering neighbor to barycenter matrix";
     Eigen::MatrixXd centered = b2n.rowwise() - b2n.colwise().mean();
 
-    LOG(DEBUG) << "Computing covariance matrix";
+    LOG_DEBUG << "Computing covariance matrix";
     Eigen::MatrixXd cov = (centered.adjoint() * centered) / double(b2n.rows() - 1);
 
     Eigen::EigenSolver<Eigen::MatrixXd> es(cov);

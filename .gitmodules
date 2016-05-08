@@ -13,3 +13,6 @@
 [submodule "external/eigen"]
 	path = external/eigen
 	url = git@github.com:RLovelett/eigen.git
+[submodule "external/plog"]
+	path = external/plog
+	url = git@github.com:SergiusTheBest/plog.git
