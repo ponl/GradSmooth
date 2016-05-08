@@ -5,9 +5,10 @@ This point cloud smoothing algorithm evolves a point cloud so that the overall d
 ## Installation
 GradSmooth uses CMake for building, therefore cmake is required. Additionally, GradSmooth has the following dependencies, however, all of these are included as submodules so no work is required on your part other than running a simple git submodule command.
 
+- cnpy
 - gflags
 - nanoflann
-- easylogging
+- plog
 - Eigen
 
 This makes it very easy to install GradSmooth. Simply do the following from the GradSmooth directory.
