@@ -1,6 +1,6 @@
 #include "smoother.h"
 
-Smoother::Smoother(size_t num_neighbors_, unsigned dimension_, unsigned codimension_, unsigned nthreads_, double step_size_, bool normal_projection_)
+Smoother::Smoother(size_t num_neighbors_, unsigned dimension_, unsigned codimension_, unsigned nthreads_, double step_size_, bool normal_projection_, bool lock_neighbors_)
 {
     num_neighbors = num_neighbors_;
     dimension = dimension_;
@@ -8,9 +8,11 @@ Smoother::Smoother(size_t num_neighbors_, unsigned dimension_, unsigned codimens
     nthreads = nthreads_;
     step_size = step_size_;
     normal_projection = normal_projection_;
+    lock_neighbors = lock_neighbors_;
 
     // Initialize vectors for threading
     updated_points = std::vector<Point>(nthreads, Point(dimension));
+    point_indices = std::vector<unsigned>(nthreads);
     gradients = std::vector<Point>(nthreads, Point(dimension));
     neighborhoods = std::vector<Cloud>(nthreads, Cloud(num_neighbors));
     distances = std::vector<DistanceVector>(nthreads, DistanceVector(num_neighbors));
@@ -21,7 +23,14 @@ void Smoother::flow_point(unsigned thread_id, PointCloud& cloud)
 {
     // Find nearest neighbors in original point cloud
     LOG_DEBUG << "Getting neighborhood from k-d tree";
-    cloud.get_knn(updated_points[thread_id], num_neighbors, neighborhoods[thread_id], distances[thread_id]);
+    if(lock_neighbors)
+    {
+        cloud.get_locked_knn(point_indices[thread_id], neighborhoods[thread_id], distances[thread_id]);
+    }
+    else
+    {
+        cloud.get_knn(updated_points[thread_id], num_neighbors, neighborhoods[thread_id], distances[thread_id]);
+    }
 
     // Compute the gradient
     LOG_DEBUG << "Computing the gradient";
@@ -33,7 +42,7 @@ void Smoother::flow_point(unsigned thread_id, PointCloud& cloud)
 
         // TODO: Abstract out sigma allow to be set
         LOG_DEBUG << "Getting frame for query point";
-        get_frame(updated_points[thread_id], neighborhoods[thread_id], 0.1, normal_vectors);
+        get_frame(updated_points[thread_id], neighborhoods[thread_id], distances[thread_id], 0.1, normal_vectors);
 
         // Compute dot products and vector norms
         LOG_DEBUG << "Projecting gradient onto normals";
@@ -104,6 +113,7 @@ void Smoother::smooth_point_cloud(PointCloud& cloud, PointCloud& evolved, const 
                 Point current_point;
                 evolved.get_point(point_index, current_point);
                 updated_points[n] = current_point;
+                point_indices[n] = point_index;
 
                 // Add thread
                 threads.push_back(std::thread(&Smoother::flow_point_wrapper, smoother, n, std::ref(cloud)));
@@ -179,19 +189,12 @@ Coordinate Smoother::get_squared_distance(Point& p0, Point& p1)
 
 
 // Find the weighted barycenter of a neighborhood
-void Smoother::get_weighted_barycenter(Point& query_point, Cloud& neighborhood, Point& barycenter, const double sigma)
+void Smoother::get_weighted_barycenter(Point& query_point, Cloud& neighborhood, DistanceVector& distances, Point& barycenter, const double sigma)
 {
-    DistanceVector local_distances(num_neighbors);
     DistanceVector weights(num_neighbors);
 
-    // Find distance of query point to neighboring points
-    for(unsigned i = 0; i < num_neighbors; i++)
-    {
-        local_distances[i] = get_squared_distance(query_point, neighborhood[i]);
-    }
-
     // Compute normalization factor
-    Coordinate normalizer = (*std::max_element(local_distances.begin(), local_distances.end())) * pow(sigma, 2);
+    Coordinate normalizer = (*std::max_element(distances.begin(), distances.end())) * pow(sigma, 2);
 
     if(normalizer == 0)
     {
@@ -203,7 +206,7 @@ void Smoother::get_weighted_barycenter(Point& query_point, Cloud& neighborhood, 
     // Compute weights
     for(unsigned i = 0; i < num_neighbors; i++)
     {
-        weights[i] = exp(-1 * local_distances[i] / normalizer);
+        weights[i] = exp(-1 * distances[i]*distances[i] / normalizer);
     }
 
     // Normalize weights
@@ -236,12 +239,12 @@ void Smoother::get_weighted_barycenter(Point& query_point, Cloud& neighborhood, 
 
 // Computes the local frame around a point
 // TODO: Switch to using current position of neighbors
-void Smoother::get_frame(Point& query_point, Cloud& neighborhood, const double sigma, VectorList& normals)
+void Smoother::get_frame(Point& query_point, Cloud& neighborhood, DistanceVector& distances, const double sigma, VectorList& normals)
 {
     LOG_DEBUG << "Computing coordinate frame.";
     Point barycenter(dimension);
     LOG_DEBUG << "Getting weighted barycenter";
-    get_weighted_barycenter(query_point, neighborhood, barycenter, sigma);
+    get_weighted_barycenter(query_point, neighborhood, distances, barycenter, sigma);
 
     LOG_DEBUG << "Computing neighbor to barycenter matrix";
     Eigen::MatrixXd    b2n(num_neighbors, dimension);
