@@ -25,7 +25,7 @@ void Smoother::flow_point(unsigned thread_id, PointCloud& cloud)
     LOG_DEBUG << "Getting neighborhood from k-d tree";
     if(lock_neighbors)
     {
-        cloud.get_locked_knn(point_indices[thread_id], neighborhoods[thread_id], distances[thread_id]);
+        cloud.get_locked_knn(updated_points[thread_id], point_indices[thread_id], neighborhoods[thread_id], distances[thread_id]);
     }
     else
     {
@@ -206,7 +206,7 @@ void Smoother::get_weighted_barycenter(Point& query_point, Cloud& neighborhood, 
     // Compute weights
     for(unsigned i = 0; i < num_neighbors; i++)
     {
-        weights[i] = exp(-1 * distances[i]*distances[i] / normalizer);
+        weights[i] = exp(-1 * distances[i] / normalizer);
     }
 
     // Normalize weights

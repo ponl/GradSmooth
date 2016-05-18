@@ -97,7 +97,7 @@ void PointCloud::copy_cloud(PointCloud& other)
 }
 
 
-void PointCloud::get_knn(Point p, const size_t k, Cloud& neighborhood, DistanceVector& distances)
+void PointCloud::get_knn(Point& p, const size_t k, Cloud& neighborhood, DistanceVector& distances)
 {
     IndexVector indices(k);
     neighborhood = Cloud(k);
@@ -131,19 +131,11 @@ void PointCloud::build_neighborhood_map(const size_t k, unsigned num_threads)
 
     neighbor_structure = NeighborVector(npoints);
 
-    LOG_DEBUG << "Initializing neighbor lock vector with " << npoints << " points";
-    for(unsigned i = 0; i < npoints; i ++)
-    {
-        neighbor_structure[i] = std::make_pair(Cloud(k), DistanceVector(k));
-    }
-
-    LOG_DEBUG << "Successfully initialized neighbor lock vector with " << npoints << " points";
+    std::vector<std::thread> threads(num_threads);
     for(unsigned i = 0; i < npoints; i += num_threads)
     {
         if((i % MAP_BUILDING_LOG_FREQUENCY) == 0)
             LOG_INFO << "Building neighborhood " << i << " of " << npoints;
-
-        std::vector<std::thread> threads(num_threads);
 
         unsigned thread_count = std::min(num_threads, npoints - i);
 
@@ -155,7 +147,7 @@ void PointCloud::build_neighborhood_map(const size_t k, unsigned num_threads)
         for(unsigned t= 0; t < thread_count; t++)
         {
             threads[t].join();
-            neighbor_structure[i + t] = std::make_pair(neighbors[t], distances[t]);
+            neighbor_structure[i + t] = neighbors[t];
         }
     }
 }
@@ -167,14 +159,20 @@ void PointCloud::construct_neighborhood_wrapper(PointCloud* pcloud, unsigned ind
 
 void PointCloud::construct_neighborhood(unsigned indx, const size_t k, unsigned nthread)
 {
-    NeighborPair    neighbor_pair;
-
     get_knn(cloud[indx], k, neighbors[nthread], distances[nthread]);
 }
 
 
-void PointCloud::get_locked_knn(unsigned indx, Cloud& neighborhood, DistanceVector& distances)
+void PointCloud::get_locked_knn(Point& p, unsigned indx, Cloud& neighborhood, DistanceVector& distances)
 {
-    neighborhood = neighbor_structure[indx].first;
-    distances = neighbor_structure[indx].second;
+    neighborhood = neighbor_structure[indx];
+    for(unsigned n = 0; n < neighborhood.size(); n++)
+    {
+        distances[n] = 0;
+        for(unsigned d = 0; d < neighborhood[n].size(); d++)
+        {
+            Coordinate dist = p[d] - neighborhood[n][d];
+            distances[n] += dist*dist;
+        }
+    }
 }

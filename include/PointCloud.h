@@ -13,6 +13,7 @@
 #include <string>
 #include <vector>
 #include <map>
+#include <math.h>
 #include <thread>
 #include <utility>
 
@@ -24,8 +25,7 @@ typedef std::vector<Point>                                  Cloud;
 typedef KDTreeVectorOfVectorsAdaptor<Cloud, Coordinate>     KDTree;
 typedef std::vector<size_t>                                 IndexVector;
 typedef std::vector<Coordinate>                             DistanceVector;
-typedef std::pair<Cloud, DistanceVector>                    NeighborPair;
-typedef std::vector<NeighborPair>                           NeighborVector;
+typedef std::vector<Cloud>                                  NeighborVector;
 
 const unsigned MAP_BUILDING_LOG_FREQUENCY = 10000;
 
@@ -47,8 +47,8 @@ class PointCloud
         unsigned    get_dimension()                     {return dimension;}
         unsigned    get_size()                          {return cloud.size();}
         void        assign_kd_tree(KDTree* p, const size_t k, bool lock_neighbors, unsigned num_threads);
-        void        get_knn(Point p, const size_t k, Cloud& neighborhood, DistanceVector& distances);
-        void        get_locked_knn(unsigned indx, Cloud& neighborhood, DistanceVector& distances);
+        void        get_knn(Point& p, const size_t k, Cloud& neighborhood, DistanceVector& distances);
+        void        get_locked_knn(Point& p, unsigned indx, Cloud& neighborhood, DistanceVector& distances);
         void        copy_cloud(PointCloud& other);
         void        build_neighborhood_map(const size_t k, unsigned num_threads);
         void        construct_neighborhood(unsigned indx, const size_t k, unsigned nthread);
