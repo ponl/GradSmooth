@@ -39,6 +39,8 @@ void PointCloud::load_cloud(std::string& path)
         cloud.push_back(point);
     }
 
+    delete[] arr.data;
+
     LOG_DEBUG << "Successfully loaded point cloud from file.";
 
     return;
@@ -129,11 +131,13 @@ void PointCloud::build_neighborhood_map(const size_t k, unsigned num_threads)
 
     neighbor_structure = NeighborVector(npoints);
 
+    LOG_DEBUG << "Initializing neighbor lock vector with " << npoints << " points";
     for(unsigned i = 0; i < npoints; i ++)
     {
         neighbor_structure[i] = std::make_pair(Cloud(k), DistanceVector(k));
     }
 
+    LOG_DEBUG << "Successfully initialized neighbor lock vector with " << npoints << " points";
     for(unsigned i = 0; i < npoints; i += num_threads)
     {
         if((i % MAP_BUILDING_LOG_FREQUENCY) == 0)
@@ -151,8 +155,7 @@ void PointCloud::build_neighborhood_map(const size_t k, unsigned num_threads)
         for(unsigned t= 0; t < thread_count; t++)
         {
             threads[t].join();
-            NeighborPair neighbor_pair = std::make_pair(neighbors[t], distances[t]);
-            neighbor_structure[i + t] = neighbor_pair;
+            neighbor_structure[i + t] = std::make_pair(neighbors[t], distances[t]);
         }
     }
 }

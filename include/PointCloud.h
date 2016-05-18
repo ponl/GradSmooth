@@ -24,7 +24,7 @@ typedef std::vector<Coordinate>                             DistanceVector;
 typedef std::pair<Cloud, DistanceVector>                    NeighborPair;
 typedef std::vector<NeighborPair>                           NeighborVector;
 
-const unsigned MAP_BUILDING_LOG_FREQUENCY = 1000;
+const unsigned MAP_BUILDING_LOG_FREQUENCY = 10000;
 
 class PointCloud
 {
