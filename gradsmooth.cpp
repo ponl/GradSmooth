@@ -1,4 +1,4 @@
-/*
+/*  Copyright 2016 Patrick A. O'Neil
     GradSmooth: Point cloud smoothing via distance to measure
     gradient flows.
 
@@ -17,13 +17,15 @@ License:
     with this program; if not, write to the Free Software Foundation, Inc.,
     51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 */
+#include <include/smoother.h>
+#include <include/PointCloud.h>
+
 #include <gflags/gflags.h>
 #include <cnpy/cnpy.h>
 #include <plog/Log.h>
 #include <plog/Appenders/ColorConsoleAppender.h>
 
-#include "smoother.h"
-#include "PointCloud.h"
+#include <string>
 
 // Command line args
 DEFINE_bool(normal_projection, false, "Project gradient onto estimated normals");
@@ -36,7 +38,6 @@ DEFINE_int32(num_threads, 1, "Number of threads to use for the smoothing algorit
 DEFINE_int32(codimension, 1, "Co-dimension of the manifold from which the point cloud was sampled");
 
 int main(int argc, char** argv) {
-
     // Set up logging
     static plog::ColorConsoleAppender<plog::TxtFormatter> consoleAppender;
     plog::init(plog::info, &consoleAppender);
@@ -47,7 +48,7 @@ int main(int argc, char** argv) {
     unsigned arg_indx = gflags::ParseCommandLineFlags(&argc, &argv, true);
 
     // Get input and output path for numpy arrays
-    if(argc != 3) {
+    if (argc != 3) {
         LOG_ERROR << "Incorrect number of command line args."
                    << "Please specify input and output path.";
         return 0;
@@ -62,8 +63,7 @@ int main(int argc, char** argv) {
 
     point_cloud.load_cloud(infn);
 
-    if(FLAGS_codimension >= point_cloud.get_dimension())
-    {
+    if (FLAGS_codimension >= point_cloud.get_dimension()) {
         LOG_FATAL << "Loaded point cloud with lower dimension than codimension!";
         return 0;
     }

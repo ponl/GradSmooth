@@ -1,6 +1,12 @@
-#ifndef POINTCLOUD_H
-#define POINTCLOUD_H
+// Copyright 2016 Patrick A. O'Neil
+#ifndef INCLUDE_POINTCLOUD_H_
+#define INCLUDE_POINTCLOUD_H_
 #define ELPP_THREAD_SAFE
+
+
+#include <cnpy/cnpy.h>
+#include <plog/Log.h>
+#include <KDTreeAdaptor.h>
 
 #include <iostream>
 #include <algorithm>
@@ -8,12 +14,9 @@
 #include <vector>
 #include <map>
 #include <thread>
+#include <utility>
 
-#include <cnpy/cnpy.h>
-#include <plog/Log.h>
-#include "nanoflann/include/nanoflann.hpp"
-
-#include "KDTreeAdaptor.h"
+#include <nanoflann/include/nanoflann.hpp>
 
 typedef double                                              Coordinate;
 typedef std::vector<Coordinate>                             Point;
@@ -51,4 +54,5 @@ class PointCloud
         void        construct_neighborhood(unsigned indx, const size_t k, unsigned nthread);
         static void construct_neighborhood_wrapper(PointCloud* pcloud, unsigned indx, const size_t k, unsigned nthread);
 };
-#endif
+
+#endif  // INCLUDE_POINTCLOUD_H_
