@@ -30,7 +30,8 @@ License:
 // Command line args
 DEFINE_bool(normal_projection, false, "Project gradient onto estimated normals");
 DEFINE_bool(lock_neighbors, false, "Lock neighbor calculation and use the same neighbors throughout");
-DEFINE_double(step_size, 0.10, "Step size for gradient flow");
+DEFINE_double(step_size_normal, 0.10, "Step size for gradient flow");
+DEFINE_double(step_size_tangent, 0.0, "Step size for gradient flow in tangent directions.");
 DEFINE_int32(num_neighbors, 5, "Number of nearest neighbors to use for knn-search");
 DEFINE_int32(iterations, 10, "Number of iterations to run the smoothing algorithm");
 DEFINE_int32(max_leaf_size, 10, "Maximum number of points contained within a kd-tree leaf");
@@ -77,7 +78,8 @@ int main(int argc, char** argv) {
 
     point_cloud.assign_kd_tree(&kd_tree, FLAGS_num_neighbors, FLAGS_lock_neighbors, FLAGS_num_threads);
 
-    Smoother smoother(FLAGS_num_neighbors, point_cloud.get_dimension(), FLAGS_codimension, FLAGS_num_threads, FLAGS_step_size, FLAGS_normal_projection, FLAGS_lock_neighbors);
+    Smoother smoother(FLAGS_num_neighbors, point_cloud.get_dimension(), FLAGS_codimension, FLAGS_num_threads,
+                      FLAGS_step_size_normal, FLAGS_step_size_tangent, FLAGS_normal_projection, FLAGS_lock_neighbors);
 
     smoother.smooth_point_cloud(point_cloud, evolved_cloud, FLAGS_iterations);
 

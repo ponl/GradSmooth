@@ -1,22 +1,46 @@
 #include "smoother.h"
 
 Smoother::Smoother(size_t num_neighbors_, unsigned dimension_, unsigned codimension_, unsigned nthreads_,
-                   double step_size_, bool normal_projection_, bool lock_neighbors_)
+                   double step_size_normal_, double step_size_tangent_, bool normal_projection_, bool lock_neighbors_)
 {
     num_neighbors = num_neighbors_;
     dimension = dimension_;
     codimension = codimension_;
     nthreads = nthreads_;
-    step_size = step_size_;
+    step_size_normal = step_size_normal_;
+    step_size_tangent = step_size_tangent_;
     normal_projection = normal_projection_;
     lock_neighbors = lock_neighbors_;
+    tangent_dim = dimension - codimension;
 
     // Initialize vectors for threading
     updated_points = std::vector<Point>(nthreads, Point(dimension));
     point_indices = std::vector<unsigned>(nthreads);
-    gradients = std::vector<Point>(nthreads, Point(dimension));
+    gradients_normal = std::vector<Point>(nthreads, Point(dimension));
+    gradients_tangent = std::vector<Point>(nthreads, Point(dimension));
     neighborhoods = std::vector<Cloud>(nthreads, Cloud(num_neighbors));
     distances = std::vector<DistanceVector>(nthreads, DistanceVector(num_neighbors));
+}
+
+
+// TODO: This needs to compute the tangent gradient for the tangent projection. That is, we need to get the current
+// position of the neighbors.
+void Smoother::get_projection_data(unsigned thread_id, VectorList& vectors,
+                                   std::vector<Coordinate>& dots, std::vector<Coordinate>& norms)
+{
+    unsigned dim = vectors.size();
+    for(unsigned i = 0; i < dim; i++)
+    {
+        Coordinate dproduct = 0.;
+        Coordinate norm = 0.;
+        for(unsigned d = 0; d < dimension; d++)
+        {
+            dproduct += gradients_normal[thread_id][d] * vectors[i][d];
+            norm += pow(vectors[i][d], 2);
+        }
+        dots[i] = dproduct;
+        norms[i] = norm;
+    }
 }
 
 
@@ -41,49 +65,54 @@ void Smoother::flow_point(unsigned thread_id, PointCloud& cloud)
 
     // Compute the gradient
     LOG_DEBUG << "Computing the gradient";
-    get_gradient(updated_points[thread_id], neighborhoods[thread_id], gradients[thread_id]);
+    get_gradient(updated_points[thread_id], neighborhoods[thread_id], gradients_normal[thread_id]);
 
     if(normal_projection)
     {
+        // Initialize the vector lists for the frame
         VectorList normal_vectors(codimension);
+        VectorList tangent_vectors(tangent_dim);
 
         // TODO: Abstract out sigma allow to be set
-        LOG_DEBUG << "Getting frame for query point";
-        get_frame(updated_points[thread_id], neighborhoods[thread_id], distances[thread_id], 0.1, normal_vectors);
+        LOG_DEBUG << "Getting local frame for query point";
+        get_frame(updated_points[thread_id], neighborhoods[thread_id], distances[thread_id], 0.1,
+                  normal_vectors, tangent_vectors);
 
         // Compute dot products and vector norms
-        LOG_DEBUG << "Projecting gradient onto normals";
-        std::vector<Coordinate> dots(codimension);
-        std::vector<Coordinate> norms(codimension);
-        for(unsigned i = 0; i < codimension; i++)
-        {
-            Coordinate dproduct = 0.;
-            Coordinate norm = 0.;
-            for(unsigned d = 0; d < dimension; d++)
-            {
-                dproduct += gradients[thread_id][d] * normal_vectors[i][d];
-                norm += pow(normal_vectors[i][d], 2);
-            }
-            dots[i] = dproduct;
-            norms[i] = norm;
-        }
+        LOG_DEBUG << "Projecting gradient onto normal and tangent vectors";
+        std::vector<Coordinate> dots_normal(codimension);
+        std::vector<Coordinate> norms_normal(codimension);
 
-        // Project gradient onto normals
+        std::vector<Coordinate> dots_tangent(tangent_dim);
+        std::vector<Coordinate> norms_tangent(tangent_dim);
+
+        get_projection_data(thread_id, normal_vectors, dots_normal, norms_normal);
+        get_projection_data(thread_id, tangent_vectors, dots_tangent, norms_tangent);
+
+        // Gradient projection
         Point ngradient(dimension);
-        for(unsigned i = 0; i < codimension; i++)
+        Point tgradient(dimension);
+        for(unsigned d = 0; d < dimension; d++)
         {
-            for(unsigned d = 0; d < dimension; d++)
+            // Project gradient onto normals
+            for(unsigned n = 0; n < codimension; n++)
             {
-                ngradient[d] += normal_vectors[i][d] * dots[i] / norms[i];
+                ngradient[d] += normal_vectors[n][d] * dots_normal[n] / norms_normal[n];
+            }
+
+            // Project gradient onto tangents
+            for(unsigned t = 0; t < tangent_dim; t++)
+            {
+                tgradient[d] += tangent_vectors[t][d] * dots_tangent[t] / norms_tangent[t];
             }
         }
-        LOG_DEBUG << "Setting new gradient.";
-        gradients[thread_id] = ngradient;
+        gradients_normal[thread_id] = ngradient;
+        gradients_tangent[thread_id] = tgradient;
     }
 
     // Move the point along the gradient
     LOG_DEBUG << "Updating point in cloud";
-    update_point(updated_points[thread_id], gradients[thread_id]);
+    update_point(updated_points[thread_id], gradients_normal[thread_id], gradients_tangent[thread_id]);
 }
 
 
@@ -97,7 +126,8 @@ void Smoother::smooth_point_cloud(PointCloud& cloud, PointCloud& evolved, const 
 {
     LOG_INFO << "Beginning smoothing operation";
     LOG_INFO << "Number Neighbors: " << num_neighbors;
-    LOG_INFO << "Step Size: " << step_size;
+    LOG_INFO << "Step Size (Normal): " << step_size_normal;
+    LOG_INFO << "Step Size (Tangent): " << step_size_tangent;
     LOG_INFO << "Normal Projection: " << (normal_projection ? "True": "False");
     LOG_INFO << "Iterations: " << T;
 
@@ -144,16 +174,17 @@ void Smoother::smooth_point_cloud(PointCloud& cloud, PointCloud& evolved, const 
 
 
 // Updates point in the direction of the gradient
-void Smoother::update_point(Point& point, Point& gradient)
+void Smoother::update_point(Point& point, Point& gradient_normal, Point& gradient_tangent)
 {
     for(unsigned d = 0; d < point.size(); d++)
     {
-        point[d] -= step_size * gradient[d];
+        point[d] -= step_size_normal * gradient_normal[d] - step_size_tangent * gradient_tangent[d];
     }
 }
 
 
 // Determines the gradient from a neighborhood
+// TODO: For computing the tangent gradient, we need to get the current position of the neighbors.
 void Smoother::get_gradient(Point& point, Cloud& neighborhood, Point& gradient)
 {
     unsigned dim = gradient.size();
@@ -246,10 +277,12 @@ void Smoother::get_weighted_barycenter(Point& query_point, Cloud& neighborhood, 
 
 // Computes the local frame around a point
 // TODO: Switch to using current position of neighbors
-void Smoother::get_frame(Point& query_point, Cloud& neighborhood, DistanceVector& distances, const double sigma, VectorList& normals)
+void Smoother::get_frame(Point& query_point, Cloud& neighborhood, DistanceVector& distances, const double sigma,
+                         VectorList& normals, VectorList& tangents)
 {
     LOG_DEBUG << "Computing coordinate frame.";
     Point barycenter(dimension);
+
     LOG_DEBUG << "Getting weighted barycenter";
     get_weighted_barycenter(query_point, neighborhood, distances, barycenter, sigma);
 
@@ -281,12 +314,13 @@ void Smoother::get_frame(Point& query_point, Cloud& neighborhood, DistanceVector
 
     for(size_t i = 0; i < evalues.size(); i++) evalue_indices[i] = i;
 
-    std::sort(evalue_indices.begin(), evalue_indices.end(), [&evalues](size_t i1, size_t i2 ){return evalues[i1].real() < evalues[i2].real();});
+    std::sort(evalue_indices.begin(), evalue_indices.end(), [&evalues](size_t i1, size_t i2 )
+             {return evalues[i1].real() < evalues[i2].real();});
 
     // Assign normal and tangent vectors
     Point new_vector(dimension);
     bool normal_vector;
-    for(unsigned i = 0; i < codimension; i++)
+    for(unsigned i = 0; i < dimension; i++)
     {
         size_t idx = evalue_indices[i];
         Eigen::VectorXcd  ev = evectors.col(idx);
@@ -294,7 +328,10 @@ void Smoother::get_frame(Point& query_point, Cloud& neighborhood, DistanceVector
         {
             new_vector[d] = ev(d).real();
         }
-        normals[i] = new_vector;
+        if(i < codimension)
+            normals[i] = new_vector;
+        else
+            tangents[i] = new_vector;
     }
 }
 

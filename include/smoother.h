@@ -29,12 +29,15 @@ class Smoother
         bool                            lock_neighbors;    /**<Determines whether to update the neighbors during the flow or keep them locked.*/
         size_t                          num_neighbors;     /**<Number of neighbors to use for neighborhood construction.*/
         unsigned                        nthreads;          /**<Number of threads to use for the flow.*/
-        unsigned                        dimension;         /**<Dimension of the underlying manifold from which the data was sampled.*/
+        unsigned                        dimension;         /**<Dimension of the ambient space from which the data was sampled.*/
         unsigned                        codimension;       /**<Codimension of the underlying manifold.*/
-        double                          step_size;         /**<Step size used for the gradient flow.*/
+        unsigned                        tangent_dim;       /**<Dimensionality of the tangent bundle.*/
+        double                          step_size_normal;  /**<Step size used for the gradient flow.*/
+        double                          step_size_tangent; /**<Step size used for flowing points in the tangent direction.*/
         std::vector<Point>              updated_points;    /**<Points which have been updated in this batch.*/
         std::vector<unsigned>           point_indices;     /**<Indices of points being updated in this batch.*/
-        std::vector<Point>              gradients;         /**<Gradients of points in this batch.*/
+        std::vector<Point>              gradients_normal;  /**<Normal gradients of points in this batch.*/
+        std::vector<Point>              gradients_tangent; /**<Tangent gradients of points in this batch.*/
         std::vector<Cloud>              neighborhoods;     /**<Neighborhoods of points in this batch.*/
         std::vector<DistanceVector>     distances;         /**<Distances to neighbors of the points in this batch.*/
 
@@ -49,9 +52,10 @@ class Smoother
         /**
          * Moves the point in the direction of the supplied gradient.
          * @param point The point which will be moved.
-         * @param gradient The direction to move the point.
+         * @param gradient The direction to move the point in the normal direction.
+         * @param gradient_tangent The direction to move the point in the tangential direction.
          */
-        void update_point(Point& point, Point& gradient);
+        void update_point(Point& point, Point& gradient_normal, Point& gradient_tangent);
 
         /**
          * Computes the weighted barycenter of the query point.
@@ -61,7 +65,18 @@ class Smoother
          * @param barycenter The Point in which the weighted barycenter will be stored.
          * @param sigma Weighting factor for the barycenter. Higher values indicate faster fall-off for distant points.
          */
-        void get_weighted_barycenter(Point& query_point, Cloud& neighborhood, DistanceVector& distances, Point& barycenter, const double sigma);
+        void get_weighted_barycenter(Point& query_point, Cloud& neighborhood, DistanceVector& distances,
+                                     Point& barycenter, const double sigma);
+
+        /**
+         * Computes the norms of a set of vectors and the dot product of the vectors with the local gradient.
+         * @param thread_id ID of the thread from which this function was called.
+         * @param vectors Vectors for which the dot products and norms will be computed.
+         * @param dots The dot products of the vectors against the thread's gradient.
+         * @param norms The norms of the supplied vectors.
+         */
+        void get_projection_data(unsigned thread_id, VectorList& vectors, std::vector<Coordinate>& dots,
+                                 std::vector<Coordinate>& norms);
 
         /**
          * Gets the estimated local coordinate frame of the query point.
@@ -70,8 +85,10 @@ class Smoother
          * @param distances The distances to the k-nearest neighbors.
          * @param sigma Weighting factor for the barycenter. Higher values indicate faster fall-off for distant points.
          * @param normals The normal vectors of the computed local frame.
+         * @param tangents The tangent vectors of the computed local frame.
          */
-        void get_frame(Point& query_point, Cloud& neighborhood, DistanceVector& distances, const double sigma, VectorList& normals);
+        void get_frame(Point& query_point, Cloud& neighborhood, DistanceVector& distances, const double sigma,
+                       VectorList& normals, VectorList&  tangents);
 
         /**
          * Updates the specified point of the batch of points currently being updated.
@@ -102,11 +119,13 @@ class Smoother
          * @param dimension_ Dimension of the underlying manifold from which the point cloud was sampled.
          * @param codimension_ Codimension of the underlying manifold from which the point cloud was sampled.
          * @param nthreads_ Number of threads to use when running the flow.
-         * @param step_size_ Step size to use for the gradient flow.
+         * @param step_size_normal_ Step size to use for the gradient flow projecting in the normal directions.
+         * @param step_size_tangent_ Step size to use for the gradient flow projecting in the tangent directions.
          * @param normal_projection_ Determines whether the gradient will be projected onto approximated normals before flowing.
          * @param lock_neighbors_ Determines whether neighbors will be updated during the flow or locked.
          */
-        Smoother(size_t num_neighbors_, unsigned dimension_, unsigned codimension_, unsigned nthreads_, double step_size_, bool normal_projection_, bool lock_neighbors_);
+        Smoother(size_t num_neighbors_, unsigned dimension_, unsigned codimension_, unsigned nthreads_,
+                 double step_size_normal_, double step_size_tangent_, bool normal_projection_, bool lock_neighbors_);
 
         /**
          * Perform smoothing on a point cloud.
