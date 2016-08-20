@@ -50,7 +50,7 @@ int main(int argc, char** argv) {
     // Get input and output path for numpy arrays
     if (argc != 3) {
         LOG_ERROR << "Incorrect number of command line args."
-                   << "Please specify input and output path.";
+                   << " Please specify input and output path.";
         return 0;
     }
     std::string infn  = argv[arg_indx];

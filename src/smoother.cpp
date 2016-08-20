@@ -1,6 +1,7 @@
 #include "smoother.h"
 
-Smoother::Smoother(size_t num_neighbors_, unsigned dimension_, unsigned codimension_, unsigned nthreads_, double step_size_, bool normal_projection_, bool lock_neighbors_)
+Smoother::Smoother(size_t num_neighbors_, unsigned dimension_, unsigned codimension_, unsigned nthreads_,
+                   double step_size_, bool normal_projection_, bool lock_neighbors_)
 {
     num_neighbors = num_neighbors_;
     dimension = dimension_;
@@ -25,11 +26,17 @@ void Smoother::flow_point(unsigned thread_id, PointCloud& cloud)
     LOG_DEBUG << "Getting neighborhood from k-d tree";
     if(lock_neighbors)
     {
-        cloud.get_locked_knn(updated_points[thread_id], point_indices[thread_id], neighborhoods[thread_id], distances[thread_id]);
+        cloud.get_locked_knn(updated_points[thread_id],
+                             point_indices[thread_id],
+                             neighborhoods[thread_id],
+                             distances[thread_id]);
     }
     else
     {
-        cloud.get_knn(updated_points[thread_id], num_neighbors, neighborhoods[thread_id], distances[thread_id]);
+        cloud.get_knn(updated_points[thread_id],
+                      num_neighbors,
+                      neighborhoods[thread_id],
+                      distances[thread_id]);
     }
 
     // Compute the gradient

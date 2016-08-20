@@ -18,6 +18,10 @@
 
 typedef std::vector<Point>      VectorList;
 
+/**
+ * k-NN gradient smoothing algorithm. This class provides the ability to smooth
+ */
+
 class Smoother
 {
     private:
