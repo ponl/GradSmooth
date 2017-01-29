@@ -74,6 +74,7 @@ int main(int argc, char** argv) {
     LOG_INFO  << "Building k-d Tree";
     KDTree kd_tree = KDTree(point_cloud.get_dimension(), *point_cloud.get_cloud(), FLAGS_max_leaf_size);
     kd_tree.index -> buildIndex();
+
     LOG_DEBUG << "Successfully populated k-d Tree with " << kd_tree.kdtree_get_point_count() << " points";
 
     point_cloud.assign_kd_tree(&kd_tree, FLAGS_num_neighbors, FLAGS_lock_neighbors, FLAGS_num_threads);

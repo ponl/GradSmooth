@@ -129,6 +129,7 @@ void Smoother::smooth_point_cloud(PointCloud& cloud, PointCloud& evolved, const 
     LOG_INFO << "Step Size (Normal): " << step_size_normal;
     LOG_INFO << "Step Size (Tangent): " << step_size_tangent;
     LOG_INFO << "Normal Projection: " << (normal_projection ? "True": "False");
+    LOG_INFO << "Threads: " << nthreads;
     LOG_INFO << "Iterations: " << T;
 
     unsigned num_points = cloud.get_size();
@@ -141,6 +142,10 @@ void Smoother::smooth_point_cloud(PointCloud& cloud, PointCloud& evolved, const 
         LOG_INFO << "Smoothing step " << t << " of " << T;
         for(unsigned i = 0; i < num_points; i += nthreads)
         {
+            if(i % 100000 == 0)
+            {
+                LOG_INFO << "Finished processing " << i << " points";
+            }
             threads.clear();
 
             unsigned nthr_round = std::min(num_points - i, nthreads);
