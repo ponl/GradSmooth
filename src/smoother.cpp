@@ -304,6 +304,7 @@ void Smoother::get_frame(Point& query_point, Cloud& neighborhood, DistanceVector
     LOG_DEBUG << "Computing covariance matrix";
     Eigen::MatrixXd cov = (centered.adjoint() * centered) / double(b2n.rows() - 1);
 
+    LOG_DEBUG << "Determining Eigenvectors and Eigenvalues";
     Eigen::EigenSolver<Eigen::MatrixXd> es(cov);
 
     const Eigen::VectorXcd& evalues  = es.eigenvalues();
@@ -317,21 +318,28 @@ void Smoother::get_frame(Point& query_point, Cloud& neighborhood, DistanceVector
     std::sort(evalue_indices.begin(), evalue_indices.end(), [&evalues](size_t i1, size_t i2 )
              {return evalues[i1].real() < evalues[i2].real();});
 
+    LOG_DEBUG << "Assigning coordinate frame";
+
     // Assign normal and tangent vectors
     Point new_vector(dimension);
     bool normal_vector;
     for(unsigned i = 0; i < dimension; i++)
     {
         size_t idx = evalue_indices[i];
+
         Eigen::VectorXcd  ev = evectors.col(idx);
         for(unsigned d = 0; d < dimension; d++)
         {
             new_vector[d] = ev(d).real();
         }
         if(i < codimension)
+        {
             normals[i] = new_vector;
+        }
         else
-            tangents[i] = new_vector;
+        {
+            tangents[i-codimension] = new_vector;
+        }
     }
 }
 
